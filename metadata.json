@@ -1,0 +1,6 @@
+{
+  "name": "Digital Life Lessons",
+  "description": "A platform for users to secure, organize, and share meaningful life lessons, personal growth insights, and wisdom.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
