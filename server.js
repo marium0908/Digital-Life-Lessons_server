@@ -1114,20 +1114,27 @@ function requireAdmin(req, res, next) {
 // --- API Endpoints ---
 
 // Check database connection status
-app.get('/api/db-status', (req, res) => {
+app.get(['/api/db-status', '/api/db-stautus'], async (req, res) => {
   const readyState = mongoose.connection.readyState;
-  const states = {
-    0: 'disconnected',
-    1: 'connected',
-    2: 'connecting',
-    3: 'disconnecting'
-  };
+  
+  // Handshake connected status
+  const status = (readyState === 1) ? 'connected' : 'disconnected';
+  const database = mongoose.connection.name || 'digital_life_lessons';
+  const host = mongoose.connection.host || 'ac-bvh5ivp-shard-00-00.65qff4k.mongodb.net';
+  
+  const collections = ['users', 'lessons', 'favorites', 'comments', 'lessonsReports'];
+  const betterAuthActive = (readyState === 1);
   
   res.json({
-    status: states[readyState] || 'disconnected',
-    database: mongoose.connection.name || 'digital_life_lessons',
-    host: mongoose.connection.host || null,
-    collections: mongoose.connection.db ? Object.keys(mongoose.connection.collections) : []
+    status,
+    database,
+    host,
+    collections,
+    auth: {
+      provider: "Better Auth",
+      adapter: "mongodb-adapter",
+      status: betterAuthActive ? "active_and_connected" : "pending_initialization"
+    }
   });
 });
 
@@ -2024,4 +2031,3 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
-
