@@ -1,3 +1,4 @@
+<img width="1920" height="2945" alt="screencapture-digital-life-lessons-three-vercel-app-2026-06-22-16_10_16" src="https://github.com/user-attachments/assets/c0130dd2-210b-4cfb-97e8-bc75bd636ba8" />
 # 🌟 Digital Life Lessons — Personal Wisdom & Growth Archive
 
 Digital Life Lessons is a modern, responsive, and highly interactive full-stack platform designed to store, curate, and share life-changing guidelines, personal growth workflows, and wisdom gathered over time. It allows individuals to preserve personal insights, engage in mindful reflection, and explore deep life lessons from a community of contributors.
