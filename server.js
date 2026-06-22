@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import dns from 'dns';
 
+
 dotenv.config();
 
 const app = express();
@@ -112,7 +113,7 @@ async function tryResolveSrvAndRewrite(uri) {
       console.log(`[SRV RESOLVER] Node DNS lookup failed (${nodeDnsErr.message}). Attempting secure DNS-over-HTTPS (DoH) via Google API over Port 443...`);
       try {
         const dohUrl = `https://dns.google/resolve?name=${encodeURIComponent(srvRecordName)}&type=SRV`;
-        const resp = await fetch(dohUrl);
+        const resp = await fetch(dohUrl, { signal: AbortSignal.timeout(1000) });
         if (!resp.ok) throw new Error(`Google DoH returned status ${resp.status}`);
         const resJson = await resp.json();
         if (resJson.Answer && resJson.Answer.length > 0) {
@@ -140,7 +141,7 @@ async function tryResolveSrvAndRewrite(uri) {
       console.log(`[SRV RESOLVER] Google DoH failed or returned no results. Trying Cloudflare DNS-over-HTTPS API...`);
       try {
         const dohUrl = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(srvRecordName)}&type=SRV`;
-        const resp = await fetch(dohUrl, { headers: { 'Accept': 'application/dns-json' } });
+        const resp = await fetch(dohUrl, { headers: { 'Accept': 'application/dns-json' }, signal: AbortSignal.timeout(1000) });
         if (resp.ok) {
           const resJson = await resp.json();
           if (resJson.Answer && resJson.Answer.length > 0) {
@@ -182,7 +183,7 @@ async function tryResolveSrvAndRewrite(uri) {
       console.log(`[SRV RESOLVER] Node TXT lookup failed (${nodeTxtErr.message}). Attempting secure DNS-over-HTTPS (DoH) via Google API over Port 443...`);
       try {
         const dohUrl = `https://dns.google/resolve?name=${encodeURIComponent(host)}&type=TXT`;
-        const resp = await fetch(dohUrl);
+        const resp = await fetch(dohUrl, { signal: AbortSignal.timeout(1000) });
         if (resp.ok) {
           const resJson = await resp.json();
           if (resJson.Answer && resJson.Answer.length > 0) {
@@ -205,7 +206,7 @@ async function tryResolveSrvAndRewrite(uri) {
       console.log(`[SRV RESOLVER] Google DoH TXT failed. Trying Cloudflare DNS-over-HTTPS TXT API...`);
       try {
         const dohUrl = `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(host)}&type=TXT`;
-        const resp = await fetch(dohUrl, { headers: { 'Accept': 'application/dns-json' } });
+        const resp = await fetch(dohUrl, { headers: { 'Accept': 'application/dns-json' }, signal: AbortSignal.timeout(1000) });
         if (resp.ok) {
           const resJson = await resp.json();
           if (resJson.Answer && resJson.Answer.length > 0) {
@@ -263,11 +264,17 @@ async function tryResolveSrvAndRewrite(uri) {
 }
 
 let dbConnectionPromise = null;
+let lastConnectionAttemptTime = 0;
 
 async function connectToDatabase() {
   if (mongoose.connection.readyState === 1) {
     hasDatabaseLoaded = true;
     isMemoryDatabase = false;
+    return;
+  }
+
+  const now = Date.now();
+  if (isMemoryDatabase && (now - lastConnectionAttemptTime < 30000)) {
     return;
   }
 
@@ -279,14 +286,15 @@ async function connectToDatabase() {
     return dbConnectionPromise;
   }
 
+  lastConnectionAttemptTime = now;
   dbConnectionPromise = (async () => {
     try {
       const finalUri = await tryResolveSrvAndRewrite(MONGODB_URI);
       console.log(`[DATABASE STARTUP] Connecting to MongoDB Atlas using:`, finalUri.replace(/:([^:@\/\?]+)@/, ':******@'));
       
       await mongoose.connect(finalUri, {
-        serverSelectionTimeoutMS: 8000,
-        connectTimeoutMS: 8000,
+        serverSelectionTimeoutMS: 2500,
+        connectTimeoutMS: 2500,
         maxPoolSize: 10,
         minPoolSize: 0,
         socketTimeoutMS: 45000,
@@ -322,8 +330,8 @@ async function connectToDatabase() {
       console.error('[DATABASE STARTUP] Connection to MongoDB failed, trying raw URI direct connection:', err.message);
       try {
         await mongoose.connect(MONGODB_URI, {
-          serverSelectionTimeoutMS: 8000,
-          connectTimeoutMS: 8000,
+          serverSelectionTimeoutMS: 2500,
+          connectTimeoutMS: 2500,
           maxPoolSize: 10,
           minPoolSize: 0,
           socketTimeoutMS: 45000,
@@ -647,7 +655,18 @@ function matchFilter(item, filter) {
   for (const key of Object.keys(filter)) {
     if (key === '$or') {
       const conds = filter[key];
-      return conds.some(cond => matchFilter(item, cond));
+      if (!conds.some(cond => matchFilter(item, cond))) {
+        return false;
+      }
+      continue;
+    }
+
+    if (key === '$and') {
+      const conds = filter[key];
+      if (!conds.every(cond => matchFilter(item, cond))) {
+        return false;
+      }
+      continue;
     }
     
     let filterVal = filter[key];
@@ -657,7 +676,7 @@ function matchFilter(item, filter) {
       itemVal = item.id;
     }
     
-    if (filterVal && typeof filterVal === 'object') {
+    if (filterVal && typeof filterVal === 'object' && !Array.isArray(filterVal)) {
       if (filterVal.$regex) {
         const regex = new RegExp(filterVal.$regex, filterVal.$options || 'i');
         if (!regex.test(String(itemVal || ''))) return false;
@@ -1110,6 +1129,51 @@ app.get('/api/db-status', (req, res) => {
     host: mongoose.connection.host || null,
     collections: mongoose.connection.db ? Object.keys(mongoose.connection.collections) : []
   });
+});
+
+// --- Better Auth Server Integration ---
+let betterAuthHandler = null;
+
+async function initBetterAuth() {
+  if (betterAuthHandler) return betterAuthHandler;
+  try {
+    const rawDb = mongoose.connection && mongoose.connection.db;
+    if (rawDb) {
+      const { betterAuth } = await import('better-auth');
+      const { mongodbAdapter } = await import('better-auth/adapters/mongodb');
+      const { toNodeHandler } = await import('better-auth/node');
+
+      const auth = betterAuth({
+        database: mongodbAdapter(rawDb),
+        secret: process.env.BETTER_AUTH_SECRET || 'a_very_secure_secret_at_least_32_characters_long_for_default',
+        baseURL: process.env.BETTER_AUTH_URL || process.env.APP_URL || 'http://localhost:3000',
+        emailAndPassword: {
+          enabled: true
+        }
+      });
+      betterAuthHandler = toNodeHandler(auth);
+      console.log('[BETTER-AUTH] Successfully initialized Better Auth with MongoDB Adapter.');
+      return betterAuthHandler;
+    }
+  } catch (err) {
+    console.error('[BETTER-AUTH] Failed to initialize Better Auth:', err.message);
+  }
+  return null;
+}
+
+// Integrated Better Auth Express routing middleware
+app.all('/api/auth/*', async (req, res, next) => {
+  const customEndpoints = ['/api/auth/register', '/api/auth/login', '/api/auth/google-login', '/api/auth/profile', '/api/auth/google-config'];
+  const reqUrl = req.originalUrl.split('?')[0];
+  if (customEndpoints.includes(reqUrl)) {
+    return next();
+  }
+  
+  const handler = await initBetterAuth();
+  if (handler) {
+    return handler(req, res);
+  }
+  next();
 });
 
 // 1. Auth API Endpoints
@@ -1960,3 +2024,4 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
+
