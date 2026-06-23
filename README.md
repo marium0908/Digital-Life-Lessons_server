@@ -1,7 +1,17 @@
-<img width="1920" height="2945" alt="screencapture-digital-life-lessons-three-vercel-app-2026-06-22-16_10_16" src="https://github.com/user-attachments/assets/c0130dd2-210b-4cfb-97e8-bc75bd636ba8" />
+<img width="1920" height="4408" alt="screencapture-digital-life-lessons-three-vercel-app-2026-06-23-10_47_32" src="https://github.com/user-attachments/assets/75815117-878d-4b14-906a-6df523599588" />
+
+
 # 🌟 Digital Life Lessons — Personal Wisdom & Growth Archive
 
+
+
 Digital Life Lessons is a modern, responsive, and highly interactive full-stack platform designed to store, curate, and share life-changing guidelines, personal growth workflows, and wisdom gathered over time. It allows individuals to preserve personal insights, engage in mindful reflection, and explore deep life lessons from a community of contributors.
+
+---
+
+## 🌐 Live Application
+You can access and interact with the live application here:
+👉 **[Digital Life Lessons Live URL](https://digital-life-lessons-three.vercel.app/)**
 
 ---
 
@@ -54,14 +64,19 @@ In the rapid flux of modern society, critical lessons learned during failures, c
 
 ---
 
-## 📦 Core STACK & Technologies Used
+## 📦 NPM Packages & Technologies Used
 
-- **React 19 & Vite**: Virtual DOM reconciliation and superfast assets compilation.
-- **Motion (framer-motion)**: Drives layout animations, fade effect transitions, and responsive scale adjustments.
-- **Tailwind CSS**: Utility-first responsive design framework.
-- **Lucide React**: Clean vector icon styling.
-- **Express**: Modern, light, robust backend routes controller.
-- **Mongoose / MongoDB**: Persistent object-document queries.
+### Production Dependencies
+- **react** (`^19.0.1`): Next-gen dynamic UI updates and hooks.
+- **react-dom** (`^19.0.1`): Web rendering utility.
+- **express** (`^4.21.2`): Minimalist and fast API backend framework.
+- **mongoose** (`^9.7.1`) & **mongodb** (`^7.3.0`): Clean persistent object-document querying for MongoDB.
+- **better-auth** (`^1.6.20`): Secure credential and profile authentication suite.
+- **motion** (`^12.23.24`): Fluid and layout-driven animations.
+- **lucide-react** (`^0.546.0`): Polished, responsive vector interface icons.
+- **react-share** (`^5.3.0`): Simple social-sharing capability widgets.
+- **dotenv** (`^17.2.3`): Environment configuration file loading.
+- **vite** (`^6.2.3`) & **@tailwindcss/vite** (`^4.1.14`): Dynamic bundling and modern CSS pipeline processing.<img width="1920" height="4408" alt="screencapture-digital-life-lessons-three-vercel-app-2026-06-23-10_47_32" src="https://github.com/user-attachments/assets/db383d32-6842-40cd-848a-9a525e7f8113" />
 
 ---
 
