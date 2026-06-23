@@ -76,7 +76,7 @@ In the rapid flux of modern society, critical lessons learned during failures, c
 - **lucide-react** (`^0.546.0`): Polished, responsive vector interface icons.
 - **react-share** (`^5.3.0`): Simple social-sharing capability widgets.
 - **dotenv** (`^17.2.3`): Environment configuration file loading.
-- **vite** (`^6.2.3`) & **@tailwindcss/vite** (`^4.1.14`): Dynamic bundling and modern CSS pipeline processing.<img width="1920" height="4408" alt="screencapture-digital-life-lessons-three-vercel-app-2026-06-23-10_47_32" src="https://github.com/user-attachments/assets/db383d32-6842-40cd-848a-9a525e7f8113" />
+- **vite** (`^6.2.3`) & **@tailwindcss/vite** (`^4.1.14`): Dynamic bundling and modern CSS pipeline process.
 
 ---
 
